@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Driver Test - Logistix</title>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col font-sans">
+    
+    <header class="bg-slate-900 text-white p-4 text-center shadow-lg">
+        <h1 class="text-xl font-bold tracking-widest italic">LOGISTIX <span class="text-red-500 underline">TEST</span></h1>
+    </header>
+    
+    <div class="p-6 flex-1 flex flex-col gap-6">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+            <label class="text-[10px] font-bold text-slate-400 uppercase">Identifiant Camion</label>
+            <select id="truckId" class="w-full p-3 bg-slate-50 border rounded-lg font-bold text-slate-800 mt-1">
+                <option value="01">CAMION 01 (TEST)</option>
+                <option value="05">CAMION 05</option>
+                <option value="08">CAMION 08</option>
+            </select>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-green-500">
+            <h3 class="text-gray-500 uppercase text-xs font-bold mb-2">Suivi en direct</h3>
+            <p id="info-text" class="text-lg font-semibold text-slate-800 mb-4">Appareil prêt pour le test</p>
+            
+            <button onclick="toggleTracking()" id="trackBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-5 rounded-xl shadow-md active:scale-95 mb-4 transition-all">
+                DÉMARRER LE TEST
+            </button>
+            
+            <div class="flex justify-between items-center text-[11px] text-gray-400 font-mono">
+                <span id="status">Statut: Off</span>
+                <span id="battery">Batterie: --%</span>
+            </div>
+        </div>
+        
+        <button onclick="showRepairForm()" class="w-full bg-white border-2 border-red-500 text-red-600 font-bold py-4 rounded-xl flex items-center justify-center gap-3 active:bg-red-50">
+            <i class="fa-solid fa-screwdriver-wrench"></i> SIGNALER UNE PANNE
+        </button>
+    </div>
+
+    <script>
+        let isTracking = false;
+        let watchId;
+        let batteryLevel = "Inconnu";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxCvdO2FF8EN3mK1nHcj_7M3kz5ejpv1q2IwqijZ9ScPxXF8pF3RQ01vX50-3yxIWdR/exec";
+
+        // Récupérer le niveau de batterie
+        if (navigator.getBattery) {
+            navigator.getBattery().then(bat => {
+                batteryLevel = Math.round(bat.level * 100) + "%";
+                document.getElementById('battery').innerText = "Batterie: " + batteryLevel;
+            });
+        }
+
+        function toggleTracking() {
+            const btn = document.getElementById('trackBtn');
+            const status = document.getElementById('status');
+            const info = document.getElementById('info-text');
+
+            if (!isTracking) {
+                if ("geolocation" in navigator) {
+                    watchId = navigator.geolocation.watchPosition(sendData, handleError, { enableHighAccuracy: true });
+                    isTracking = true;
+                    btn.innerText = "ARRÊTER LE TEST";
+                    btn.classList.replace('bg-green-500', 'bg-orange-600');
+                    status.innerText = "Statut: EN LIGNE";
+                    info.innerText = "Transmission des données...";
+                } else {
+                    alert("Le GPS n'est pas activé sur ce téléphone.");
+                }
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                isTracking = false;
+                btn.innerText = "DÉMARRER LE TEST";
+                btn.classList.replace('bg-orange-600', 'bg-green-500');
+                status.innerText = "Statut: Off";
+                info.innerText = "Test terminé";
+            }
+        }
+
+        function sendData(pos) {
+            const id = document.getElementById('truckId').value;
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({
+                    type: "tracking",
+                    id: id,
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    bat: batteryLevel // On envoie aussi la batterie
+                })
+            });
+        }
+
+        function showRepairForm() {
+            const id = document.getElementById('truckId').value;
+            const desc = prompt("Type de panne pour le Camion " + id + " :");
+            if (desc) {
+                fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        type: "panne",
+                        id: id,
+                        panne: "TEST MÉCANIQUE",
+                        desc: desc
+                    })
+                });
+                alert("Panne envoyée au tableau de bord !");
+            }
+        }
+
+        function handleError(err) { console.error("Erreur GPS:", err.message); }
+    </script>
+</body>
+</html>

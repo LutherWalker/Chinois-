@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Chauffeur - Logistix</title>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col font-sans">
+    
+    <header class="bg-slate-900 text-white p-4 text-center shadow-lg">
+        <h1 class="text-xl font-bold tracking-widest italic">LOGISTIX <span class="text-red-500 underline">DRIVER</span></h1>
+    </header>
+    
+    <div class="p-6 flex-1 flex flex-col gap-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-green-500">
+            <h3 class="text-gray-500 uppercase text-xs font-bold mb-2">Statut du Camion 05</h3>
+            <p id="mission-info" class="text-lg font-semibold text-slate-800 mb-4">Prêt pour le service</p>
+            
+            <button onclick="toggleTracking()" id="trackBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-5 rounded-xl transition duration-300 shadow-md active:scale-95 mb-4">
+                DÉMARRER LA JOURNÉE
+            </button>
+            
+            <div id="status" class="text-sm text-gray-400 italic text-center">Statut : Déconnecté</div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-red-500">
+            <h3 class="text-gray-500 uppercase text-xs font-bold mb-4 italic">Un problème mécanique ?</h3>
+            <button onclick="showRepairForm()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl transition shadow-md flex items-center justify-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation"></i> SIGNALER UNE PANNE
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let isTracking = false;
+        let watchId;
+        const API_URL = "https://script.google.com/macros/s/AKfycbxCvdO2FF8EN3mK1nHcj_7M3kz5ejpv1q2IwqijZ9ScPxXF8pF3RQ01vX50-3yxIWdR/exec";
+
+        function toggleTracking() {
+            const btn = document.getElementById('trackBtn');
+            const status = document.getElementById('status');
+            const info = document.getElementById('mission-info');
+
+            if (!isTracking) {
+                if ("geolocation" in navigator) {
+                    watchId = navigator.geolocation.watchPosition(sendData, handleError, { enableHighAccuracy: true });
+                    isTracking = true;
+                    btn.innerText = "ARRÊTER LE SERVICE";
+                    btn.className = "w-full bg-orange-600 text-white font-black py-5 rounded-xl shadow-md";
+                    status.innerText = "Suivi GPS en cours...";
+                    info.innerText = "Livraison en cours (Douala)";
+                }
+            } else {
+                navigator.geolocation.clearWatch(watchId);
+                isTracking = false;
+                btn.innerText = "DÉMARRER LA JOURNÉE";
+                btn.className = "w-full bg-green-500 text-white font-black py-5 rounded-xl shadow-md";
+                status.innerText = "Statut : Déconnecté";
+                info.innerText = "Service terminé";
+            }
+        }
+
+        function sendData(pos) {
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({
+                    type: "tracking",
+                    id: "05",
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude
+                })
+            });
+        }
+
+        function showRepairForm() {
+            const desc = prompt("Décrivez la panne (ex: Crevaison, Surchauffe) :");
+            if (desc) {
+                fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        type: "panne",
+                        id: "05",
+                        panne: "MÉCANIQUE",
+                        desc: desc
+                    })
+                });
+                alert("Alerte envoyée au garage et au bureau !");
+            }
+        }
+        function handleError(err) { console.error(err); }
+    </script>
+</body>
+</html>

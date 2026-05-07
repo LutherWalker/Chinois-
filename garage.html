@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Garage - Logistix</title>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans">
+    <nav class="bg-red-700 text-white p-4 shadow-xl flex justify-between items-center">
+        <h1 class="text-xl font-bold flex items-center gap-3"><i class="fa-solid fa-wrench"></i> ATELIER MÉCANIQUE</h1>
+        <span class="text-xs bg-red-800 px-3 py-1 rounded-full">Chef de Garage</span>
+    </nav>
+
+    <main class="p-6 max-w-4xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-slate-800 p-4 text-white font-bold flex justify-between">
+                PANNES SIGNALÉES
+                <button onclick="fetchPannes()" class="text-xs text-slate-400">Actualiser</button>
+            </div>
+            <div id="list-pannes" class="divide-y divide-gray-100">
+                <div class="p-8 text-center text-gray-400">Chargement des signalements...</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxCvdO2FF8EN3mK1nHcj_7M3kz5ejpv1q2IwqijZ9ScPxXF8pF3RQ01vX50-3yxIWdR/exec";
+
+        async function fetchPannes() {
+            const container = document.getElementById('list-pannes');
+            try {
+                const res = await fetch(API_URL + "?get=pannes");
+                const data = await res.json();
+                
+                if(data.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-gray-400">Aucune panne signalée.</div>';
+                    return;
+                }
+
+                container.innerHTML = data.map(row => `
+                    <div class="p-6 flex justify-between items-center bg-red-50/50">
+                        <div>
+                            <span class="text-sm font-black text-red-600">CAMION N°${row[1]}</span>
+                            <p class="text-slate-800 font-bold mt-1">${row[2]}</p>
+                            <p class="text-xs text-slate-500 italic">${row[3]}</p>
+                        </div>
+                        <button class="bg-blue-600 text-white text-[10px] font-bold px-4 py-2 rounded">RÉPARER</button>
+                    </div>
+                `).join('');
+            } catch (e) { container.innerHTML = '<div class="p-8 text-center text-red-400">Erreur de connexion.</div>'; }
+        }
+        setInterval(fetchPannes, 30000);
+        fetchPannes();
+    </script>
+</body>
+</html>
